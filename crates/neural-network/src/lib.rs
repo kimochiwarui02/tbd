@@ -1,4 +1,3 @@
-use approx::assert_relative_eq;
 use rand::Rng;
 use rand::RngCore;
 #[derive(Debug)]
@@ -80,38 +79,78 @@ impl Network {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_relative_eq;
     use rand::SeedableRng;
     use rand_chacha::ChaCha8Rng;
 
     #[test]
     fn random() {
         let mut rng = ChaCha8Rng::from_seed(Default::default());
-        let neuron = Neuron::random(&mut rng, 4);
+        let network = Network::random(
+            &mut rng,
+            &[
+                LayerTopology { neurons: 3 },
+                LayerTopology { neurons: 2 },
+                LayerTopology { neurons: 1 },
+            ],
+        );
 
-        assert_relative_eq!(neuron.bias, -0.6255188);
+        // Test network
+        assert_eq!(network.layers.len(), 2);
+
+        // Test layer 1
+        assert_eq!(network.layers[0].neurons.len(), 2);
+        // Neruron One
+        assert_relative_eq!(network.layers[0].neurons[0].bias, -0.6255188);
         assert_relative_eq!(
-            neuron.weights.as_slice(),
-            &[0.67383933, 0.81812596, 0.26284885, 0.5238805].as_ref()
+            network.layers[0].neurons[0].weights.as_slice(),
+            &[0.67383933, 0.81812596, 0.26284885].as_ref()
+        );
+        //Neuron two
+        assert_relative_eq!(network.layers[0].neurons[1].bias, 0.5238805);
+        assert_relative_eq!(
+            network.layers[0].neurons[1].weights.as_slice(),
+            &[-0.5351684, 0.069369555, -0.7648182].as_ref()
+        );
+
+        // Test Layer 2
+        assert_eq!(network.layers[1].neurons.len(), 1);
+        assert_relative_eq!(network.layers[1].neurons[0].bias, -0.102499485);
+        assert_relative_eq!(
+            network.layers[1].neurons[0].weights.as_slice(),
+            &[-0.48879623, -0.19277143].as_ref()
         );
     }
 
     #[test]
     fn propagate() {
-        let neuron = Neuron {
-            bias: 0.5,
-            weights: vec![-0.3, 0.8],
+        let layers = (
+            Layer {
+                neurons: vec![
+                    Neuron {
+                        bias: 0.0,
+                        weights: vec![0.1, 0.2, 0.6],
+                    },
+                    Neuron {
+                        bias: 0.0,
+                        weights: vec![0.1, 0.2, 0.6],
+                    },
+                ],
+            },
+            Layer {
+                neurons: vec![Neuron {
+                    bias: 0.0,
+                    weights: vec![0.1, 0.2],
+                }],
+            },
+        );
+        let network = Network {
+            layers: vec![layers.0, layers.1],
         };
 
-        // Ensures `.max()` (our ReLU) works:
-        assert_relative_eq!(neuron.propagate(&[-10.0, -10.0]), 0.0,);
-
-        // `0.5` and `1.0` chosen by a fair dice roll:
         assert_relative_eq!(
-            neuron.propagate(&[0.5, 1.0]),
-            (-0.3 * 0.5) + (0.8 * 1.0) + 0.5,
+            network.propagate(vec![0.4, 0.3, 0.8]).as_slice(),
+            vec![0.17400002].as_slice()
         );
-
-        // We could've written `1.15` right away, but showing the entire
-        // formula makes our intentions clearer
     }
 }
