@@ -1,6 +1,7 @@
 use std::ops::Index;
-
-use rand::{Rng, RngCore, random_bool, seq::IndexedRandom};
+mod statistics;
+pub use self::statistics::*;
+use rand::{Rng, RngCore, seq::SliceRandom};
 
 pub struct GeneticAlgo<S> {
     selection_method: S,
@@ -33,9 +34,9 @@ impl GaussianMutation {
 impl MutationMethod for GaussianMutation {
     fn mutate(&self, rng: &mut dyn RngCore, child: &mut Chromosome) {
         for gene in child.iter_mut() {
-            let sign = if rng.random_bool(0.5) { -1.0 } else { 1.0 };
-            if rng.random_bool(self.chance as f64) {
-                *gene += sign * self.coeff * rng.random::<f32>();
+            let sign = if rng.gen_bool(0.5) { -1.0 } else { 1.0 };
+            if rng.gen_bool(self.chance as f64) {
+                *gene += sign * self.coeff * rng.r#gen::<f32>();
             }
         }
     }
@@ -62,7 +63,7 @@ impl CrossoverMethod for UniformCrossover {
         parent_a
             .iter()
             .zip(parent_b.iter())
-            .map(|(&a, &b)| if rng.random_bool(0.5) { a } else { b })
+            .map(|(&a, &b)| if rng.gen_bool(0.5) { a } else { b })
             .collect()
     }
 }
@@ -125,12 +126,12 @@ where
         }
     }
 
-    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> Vec<I>
+    pub fn evolve<I>(&self, rng: &mut dyn RngCore, population: &[I]) -> (Vec<I>, Statistics)
     where
         I: Individual,
     {
         assert!(!population.is_empty());
-        (0..population.len())
+        let new_pop = (0..population.len())
             .map(|_| {
                 let parent_a = self.selection_method.select(rng, population).chromosome();
                 let parent_b = self.selection_method.select(rng, population).chromosome();
@@ -139,7 +140,9 @@ where
 
                 I::create(child)
             })
-            .collect()
+            .collect();
+        let stats = Statistics::new(population);
+        (new_pop, stats)
     }
 }
 
@@ -236,7 +239,7 @@ mod tests {
         ];
 
         for _ in 0..10 {
-            population = ga.evolve(&mut rng, &population);
+            (population, _) = ga.evolve(&mut rng, &population);
         }
 
         let expected_population = vec![

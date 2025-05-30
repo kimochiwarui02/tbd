@@ -1,7 +1,13 @@
 import * as sim from "lib-simulation-wasm";
 
-const simulation = new sim.Simulation();
+let simulation = new sim.Simulation();
 const world = simulation.world();
+
+document.getElementById('train').onclick = function() {
+    simulation.train();
+    console.log(simulation.stats());
+};
+
 const viewport = document.getElementById("viewport");
 const viewportWidth = viewport.width;
 const viewportHeight = viewport.height;
@@ -61,7 +67,6 @@ function redraw() {
   ctxt.clearRect(0, 0, viewportWidth, viewportHeight);
 
   simulation.step();
-
   const world = simulation.world();
 
   for (const animal of simulation.world().animals) {

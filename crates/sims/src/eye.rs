@@ -1,5 +1,5 @@
 use crate::*;
-use std::{cell, f32::consts::*};
+use std::f32::consts::*;
 
 const FOV_ANGLE: f32 = PI + FRAC_PI_4;
 const CELLS: usize = 9;
@@ -20,30 +20,33 @@ impl Eye {
         foods: &[Food],
     ) -> Vec<f32> {
         let mut cells = vec![0.0; self.cells];
+
         for food in foods {
             let vec = food.position - position;
             let dist = vec.norm();
-            if dist >= self.fov_range {
+
+            if dist > self.fov_range {
                 continue;
             }
-            let angle = na::wrap(
-                na::Rotation2::rotation_between(&na::Vector2::y(), &vec).angle() - rotation.angle(),
-                -PI,
-                PI,
-            );
-            if angle <= self.fov_angle / 2.0 || angle > self.fov_angle / 2.0 {
+
+            let angle = na::Rotation2::rotation_between(&na::Vector2::y(), &vec).angle();
+            let angle = angle - rotation.angle();
+            let angle = na::wrap(angle, -PI, PI);
+
+            if angle < -self.fov_angle / 2.0 || angle > self.fov_angle / 2.0 {
                 continue;
-            };
+            }
 
             let angle = angle + self.fov_angle / 2.0;
-            let cell = angle / self.fov_angle;
-            let cell = cell * (self.cells as f32);
+            let cell = angle / self.fov_angle * (self.cells as f32);
             let cell = (cell as usize).min(cells.len() - 1);
-            let energy = (self.fov_range - dist) / self.fov_range;
-            cells[cell] += energy;
+
+            cells[cell] += (self.fov_range - dist) / self.fov_range;
         }
+
         cells
     }
+
     fn new(fov_range: f32, fov_angle: f32, cells: usize) -> Self {
         assert!(fov_range > 0.0);
         assert!(fov_angle > 0.0);
@@ -63,18 +66,5 @@ impl Eye {
 impl Default for Eye {
     fn default() -> Self {
         Self::new(FOV_RANGE, FOV_ANGLE, CELLS)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use test_case::test_case;
-
-    #[test_case(1.0)]
-    #[test_case(0.5)]
-    #[test_case(0.1)]
-    fn fov_ranges(fov_range: f32) {
-        todo!()
     }
 }

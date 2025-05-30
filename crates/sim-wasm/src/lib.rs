@@ -48,6 +48,20 @@ impl Simulation {
     pub fn step(&mut self) {
         self.sim.step(&mut self.rng);
     }
+
+    pub fn train(&mut self) {
+        for _ in 0..10 {
+            self.sim.train(&mut self.rng);
+        }
+    }
+
+    pub fn stats(&mut self) -> String {
+        let stats = self.sim.train(&mut self.rng);
+        format!(
+            "min={:.2}, max={:.2}, avg={:.2}",
+            stats.min_fitness, stats.max_fitness, stats.avg_fitness,
+        )
+    }
 }
 
 impl From<&sim::World> for World {
